@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+</head>
+<body>
+    <canvas id="gl_canvas" width="500" height="500">
+    <script src="cube.js"></script>
+    </canvas>
+    <p>Затухание
+    <input id="Zatuh" type="range" min = 0.9 max = 0.99 step = 0.001 oninput="rangeZath()" value="0.5">
+    <input type="checkbox" id="quadOrNot" onclick="selectStep()">
+    </p>
+    <p>Яркость
+        <input id="Brightness" type="range" min = 0.1 max = 2.0 step = 0.1 oninput="rangeBrightness()" value="1.0">
+    </p>
+<!--Выбор типа-->
+<p>
+    <select onchange="changeProgram(this.value)">
+        <option value="lambertProgram">Ламберт</option>
+        <option value="phongProgram">Фонг</option>
+        <option value="celShading">Сэл-шейдинг</option>
+        <option value="guroProgram">Гуро</option>
+        </select>
+</p>
+</body>
+</html>
