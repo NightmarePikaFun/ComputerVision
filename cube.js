@@ -3,7 +3,8 @@ let angleX =-0.5;
 let angleY=-0.5;
 let zV = 0.9;
 let bright = 0.9;
-let typeProg = "guroProgram";
+let typeProg = "lambertProgram";
+let typeShade = "Guro";
 let typeZatuh = false;
 
 const vsSourceGuro = `#version 300 es 
@@ -22,9 +23,10 @@ in vec4 uNMatrix;
 
 // Выходной параметр с координатами вершины, интерполируется и передётся во фрагментный шейдер 
 out vec3 vPosition;
-out vec3 uColor;
+out vec3 uColorG;
 out vec3 toLight;
 out float brightValue;
+out vec3 uColor;
 void main() {
     // Захардкодим углы поворота
     float x_angle = angle.y;
@@ -60,7 +62,10 @@ void main() {
     float spec = pow(max(dot(viewDir,reflectDir),0.0),32.0);
     vec3 specular = specStrength*spec*vec3(0.2,0.3,0.7);
     
+    toLight = vPosition-lightWordPos*1.0;//vPosition.zyx-lightDir;
     uColor = ambient +diffuse+specular;
+    //uColor = vec3(0.2, 0.3, 0.7);
+    brightValue = brightVal;
 }`
 
 const fsSourceGuro =`#version 300 es
@@ -69,6 +74,7 @@ precision mediump float;
 
 // Интерполированные координаты вершины, передаются из вершинного шейдера
 in vec3 vPosition;
+in vec3 uColorG;
 in vec3 uColor;
 in vec3 toLight;
 in float brightValue;
@@ -98,7 +104,7 @@ in vec4 uNMatrix;
 
 // Выходной параметр с координатами вершины, интерполируется и передётся во фрагментный шейдер 
 out vec3 vPosition;
-out float uColor;
+out vec3 uColor;
 out vec3 toLight;
 out float brightValue;
 void main() {
@@ -120,7 +126,7 @@ void main() {
 
     // Передаём непреобразованную координату во фрагментный шейдер
     vPosition = vertexPosition*transform;
-    uColor = -5.0;
+    uColor = vec3(0.2, 0.3, 0.7);
     //Light sample
     brightValue = brightVal;
     //if(typeShader == 2.0)
@@ -138,7 +144,7 @@ precision mediump float;
 
 // Интерполированные координаты вершины, передаются из вершинного шейдера
 in vec3 vPosition;
-in float uColor;
+in vec3 uColor;
 in vec3 toLight;
 in float brightValue;
 // Цвет, который будем отрисовывать
@@ -165,7 +171,7 @@ void main(){
     else if(light>0.0){
         light = 0.2;
     }
-    color = vec4(0.2*light, 0.3*light, 0.7*light,1);
+    color = vec4(uColor.xyz*light,1);
     }
 `
 
@@ -176,7 +182,7 @@ precision mediump float;
 
 // Интерполированные координаты вершины, передаются из вершинного шейдера
 in vec3 vPosition;
-in float uColor;
+in vec3 uColor;
 in vec3 toLight;
 in float brightValue;
 // Цвет, который будем отрисовывать
@@ -191,7 +197,7 @@ void main() {
     vec3 surfaceToLight = normalize(toLight);
     
     float light = dot(normal,surfaceToLight);
-    color = vec4(0.2*light, 0.3*light, 0.7*light,1);
+    color = vec4(uColor.xyz*light,1);
     }
 `;
 
@@ -202,7 +208,7 @@ precision mediump float;
 
 // Интерполированные координаты вершины, передаются из вершинного шейдера
 in vec3 vPosition;
-in float uColor;
+in vec3 uColor;
 in vec3 toLight;
 in float brightValue;
 // Цвет, который будем отрисовывать
@@ -226,10 +232,10 @@ void main() {
     vec3 R = normalize(eyeVec);
     vec3 E = reflect(L,N);
     
-    float light = dot(N,L);
+    float light = dot(N,L)*brightValue;
     
     float specular = pow(max(dot(E,R),0.0),shiness);
-    vec3 specularLight = vec3((0.7,0.3,0.7)*specular);
+    vec3 specularLight = vec3((uColor.xyz)*specular);
     
     color = vec4((ambientLightColor+diffLight+specularLight)*((light+lambertComp)*0.9),1.0);
     
@@ -251,23 +257,31 @@ function main() {
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     // Включаем z-buffer
     gl.enable(gl.DEPTH_TEST);
-
+    let shade = vsSource;
+    if(typeShade=="Guro")
+    {
+        shade = vsSourceGuro;
+    }
+    else if(typeShade=="Phong")
+    {
+        shade=vsSource;
+    }
     let shaderProgram;
     if(typeProg == "lambertProgram")
     {
-        shaderProgram = initShaderProgram(gl, vsSource, fsSource);
+        shaderProgram = initShaderProgram(gl, shade, fsSource);
     }
     else if(typeProg == "phongProgram")
     {
-        shaderProgram = initShaderProgram(gl, vsSource, fsSourcePhong);
+        shaderProgram = initShaderProgram(gl, shade, fsSourcePhong);
     }
     else if(typeProg == "celShading")
     {
-        shaderProgram = initShaderProgram(gl, vsSource, fsSourceCell);
+        shaderProgram = initShaderProgram(gl, shade, fsSourceCell);
     }
     else if(typeProg == "guroProgram")
     {
-        shaderProgram = initShaderProgram(gl, vsSourceGuro,fsSourceGuro);
+        shaderProgram = initShaderProgram(gl, shade,fsSourceGuro);
     }
     // Создаём шейдерную программу
 
@@ -470,6 +484,11 @@ function rangeBrightness(){
 
 function changeProgram(value){
         typeProg = value;
+    main();
+}
+
+function changeType(value){
+    typeShade=value;
     main();
 }
 
